@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// 用户表
+model SysUser {
+  id            Int            @id @default(autoincrement())
+  userId        String         @unique @db.VarChar(64)
+  username      String         @db.VarChar(128)
+  password      String         @db.VarChar(256)
+  email         String?        @db.VarChar(128)
+  mobilephone   String?        @db.VarChar(32)
+  companyName   String?        @db.VarChar(256)
+  companyCode   String?        @db.VarChar(64)
+  netuserId     String?        @db.VarChar(64)
+  userType      String?        @db.VarChar(32)
+  prvId         String?        @db.VarChar(64)
+  prvName       String?        @db.VarChar(128)
+  regId         String?        @db.VarChar(64)
+  regName       String?        @db.VarChar(128)
+  status        Int            @default(1)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  userTenants   SysUserTenant[]
+}
+
+// 租户表
+model SysTenant {
+  id            Int            @id @default(autoincrement())
+  tenantId      String         @unique @db.VarChar(64)
+  name          String         @db.VarChar(256)
+  code          String?        @db.VarChar(64)
+  prvCode       String?        @db.VarChar(64)
+  regFullCode   String?        @db.VarChar(128)
+  regFullName   String?        @db.VarChar(256)
+  teamFullCode  String?        @db.VarChar(128)
+  status        Int            @default(1)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  userTenants   SysUserTenant[]
+}
+
+// 用户-租户关联表
+model SysUserTenant {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  tenantId  Int
+  createdAt DateTime @default(now())
+  user      SysUser  @relation(fields: [userId], references: [id])
+  tenant    SysTenant @relation(fields: [tenantId], references: [id])
+
+  @@unique([userId, tenantId])
+}
+
+// 应用表
+model SysApp {
+  id          Int      @id @default(autoincrement())
+  appId       String   @unique @db.VarChar(64)
+  name        String   @db.VarChar(256)
+  code        String   @db.VarChar(64)
+  description String?  @db.Text
+  status      Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// 设计包表
+model WsDesignPackage {
+  id              Int      @id @default(autoincrement())
+  name            String   @db.VarChar(256)
+  wsTypeName      String   @db.VarChar(256)
+  wsTypeCode      String   @db.VarChar(128)
+  wsPrefix        String?  @db.VarChar(64)
+  designGroup     String?  @db.VarChar(128)
+  remark          String?  @db.Text
+  processDesignId String?  @db.VarChar(128)
+  processXml      String?  @db.LongText
+  taskForms       String?  @db.LongText
+  usableRange     String?  @default("v2") @db.VarChar(32)
+  createTime      DateTime @default(now())
+  updateTime      DateTime @updatedAt
+}
+
+// 设计包部署配置表
+model WsDesignDeploy {
+  id                Int      @id @default(autoincrement())
+  wsTypeCode        String   @db.VarChar(128)
+  wsTypeName        String?  @db.VarChar(256)
+  wsPrefix          String?  @db.VarChar(64)
+  wsDesignPackageId Int?
+  createFormInfo    String?  @db.LongText
+  createTime        DateTime @default(now())
+  updateTime        DateTime @updatedAt
+}
