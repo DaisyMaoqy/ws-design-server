@@ -1,6 +1,6 @@
 # ws-design-server
 
-中盈BPM管理系统 - 后端服务
+BPM管理系统 - 后端服务
 
 ## 技术栈
 
