@@ -1,9 +1,12 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { Injectable, UnauthorizedException, Logger } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { PrismaService } from "../prisma/prisma.service";
 
 @Injectable()
 export class AuthService {
+    // 直接初始化，不用构造注入
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
@@ -32,6 +35,8 @@ export class AuthService {
     }
 
     // 3. 验证密码（简单明文对比，生产环境应使用 bcrypt）
+    this.logger.debug('plainPassword：', plainPassword);
+    this.logger.debug('user.password：', user.password);
     if (user.password !== plainPassword) {
       throw new UnauthorizedException("用户名或密码错误");
     }

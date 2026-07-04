@@ -5,12 +5,17 @@ import {
   Body,
   Query,
   BadRequestException,
+  Logger,
 } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 
 @Controller("auth")
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  // 直接初始化，不用构造注入
+  private readonly logger = new Logger(AuthController.name);
+  constructor(
+    private readonly authService: AuthService,
+  ) {}
 
   /**
    * POST /ws/admin/auth/token
@@ -21,7 +26,10 @@ export class AuthController {
     @Body() body: { userId: string; password: string; tenantId: string },
   ) {
     const { userId, password, tenantId } = body;
-
+    // 打印userId
+    this.logger.log('userId:', userId);
+    // 打印password
+    this.logger.log('password:', password);
     if (!userId || !password) {
       throw new BadRequestException("用户名和密码不能为空");
     }
