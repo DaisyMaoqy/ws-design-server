@@ -6,7 +6,7 @@ import { AuthController } from "./auth.controller";
 @Module({
   imports: [
     JwtModule.register({
-      secret: process.env.JWT_SECRET || "ws-design-jwt-secret-key-2024",
+      secret: process.env.JWT_SECRET || "ws-design-jwt-secret-key-2026",
       signOptions: { expiresIn: "24h" },
     }),
   ],
