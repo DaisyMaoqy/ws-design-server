@@ -8,6 +8,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { AuthService } from "./auth.service";
+import { AuthTokenDto } from "./dto/auth-token.dto";
 
 @Controller("auth")
 export class AuthController {
@@ -23,7 +24,8 @@ export class AuthController {
    */
   @Post("token")
   async login(
-    @Body() body: { userId: string; password: string; tenantId: string },
+    @Body() body: AuthTokenDto, // 添加DTO层 参数校验
+    //@Body() body:  { userId: string; password: string; tenantId: string },
   ) {
     const { userId, password, tenantId } = body;
     // 打印userId
@@ -34,7 +36,7 @@ export class AuthController {
       throw new BadRequestException("用户名和密码不能为空");
     }
 
-    return this.authService.login(userId, password, tenantId);
+    return this.authService.login(body);
   }
 
   /**

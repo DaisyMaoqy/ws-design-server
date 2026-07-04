@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException, Logger } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { PrismaService } from "../prisma/prisma.service";
+import { AuthTokenDto } from "./dto/auth-token.dto";
 
 @Injectable()
 export class AuthService {
@@ -16,11 +17,14 @@ export class AuthService {
    * 用户登录
    * 前端使用 Base64 编码密码后传输，这里解码后对比
    */
-  async login(userId: string, passwordBase64: string, tenantId: string) {
+  // async login(userId: string, passwordBase64: string, tenantId: string) {
+  async login(body: AuthTokenDto) {
     // 1. Base64 解码密码
     let plainPassword: string;
+    const { userId, password, tenantId } = body;
+
     try {
-      plainPassword = Buffer.from(passwordBase64, "base64").toString("utf-8");
+      plainPassword = Buffer.from(password, "base64").toString("utf-8");
     } catch {
       throw new UnauthorizedException("密码格式错误");
     }
@@ -138,10 +142,10 @@ export class AuthService {
    */
   async loginByTicket(ticket: string, ssoId: string) {
     // Mock: 直接返回 admin 用户的登录信息
-    return this.login(
-      "admin",
-      Buffer.from("admin123").toString("base64"),
-      "tenant_001",
+    return this.login({
+      userId: "admin",
+      password: Buffer.from("admin123").toString("base64"),
+      tenantId: "tenant_001"}
     );
   }
 
