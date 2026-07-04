@@ -133,8 +133,8 @@ npm run dev
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `DATABASE_URL` | MySQL 连接地址 | `mysql://ws_design:ws_design_2024@localhost:3306/ws_design_db` |
-| `JWT_SECRET` | JWT 签名密钥 | `ws-design-jwt-secret-key-2024` |
+| `DATABASE_URL` | MySQL 连接地址 | `mysql://ws_design:ws_design_2026@localhost:3306/ws_design_db` |
+| `JWT_SECRET` | JWT 签名密钥 | `ws-design-jwt-secret-key-2026` |
 | `PORT` | 服务端口 | `3000` |
 
 ## Docker 部署

@@ -7,10 +7,10 @@ services:
     container_name: ws-design-mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: root_2024
+      MYSQL_ROOT_PASSWORD: root_2026
       MYSQL_DATABASE: ws_design_db
       MYSQL_USER: ws_design
-      MYSQL_PASSWORD: ws_design_2024
+      MYSQL_PASSWORD: ws_design_2026
     ports:
       - "3306:3306"
     volumes:
@@ -28,8 +28,8 @@ services:
     ports:
       - "3001:3000"
     environment:
-      DATABASE_URL: "mysql://ws_design:ws_design_2024@mysql:3306/ws_design_db"
-      JWT_SECRET: "ws-design-jwt-secret-key-2024"
+      DATABASE_URL: "mysql://ws_design:ws_design_2026@mysql:3306/ws_design_db"
+      JWT_SECRET: "ws-design-jwt-secret-key-2026"
       PORT: "3000"
     depends_on:
       - mysql
