@@ -37,12 +37,13 @@ export class ResponseInterceptor<T> implements NestInterceptor<
         ) {
           return data;
         }
-
-        return {
+        
+        const successResponse: ApiResponse = {
           code: "200",
           msg: "成功",
           data: data ?? null,
         };
+        return successResponse;
       }),
     );
   }
