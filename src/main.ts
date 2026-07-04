@@ -1,11 +1,12 @@
 import { NestFactory } from "@nestjs/core";
-import { RequestMethod } from "@nestjs/common";
+import { RequestMethod, ValidationPipe } from "@nestjs/common";
 import { AppModule } from "./app.module";
 import { ResponseInterceptor } from "./common/interceptors/response.interceptor";
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.useGlobalPipes(new ValidationPipe()); // 全局配置验证装饰器
 
   // 全局前缀，匹配前端请求路径 /ws/admin/xxx
   // 排除 /api/eoms 开头的路径（设计包管理等模块使用独立前缀）
