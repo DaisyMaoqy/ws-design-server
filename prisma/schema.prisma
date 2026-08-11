@@ -42,10 +42,14 @@ model SysTenant {
   status        Int            @default(1)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
-  userTenants   SysUserTenant[]
+  userTenants   SysUserTenant[] // 关联：一用户对多个租户
 }
 
 // 用户-租户关联表
+
+// @relation fields: [tenantId] → 当前模型的外键字段 - tenantId 必须显式声明
+// references: [id] → 关联目标模型的主键字段 eg：【SysUserTenant】表的 [userId]字段 关联【SysUser】表的[id]字段
+
 model SysUserTenant {
   id        Int      @id @default(autoincrement())
   userId    Int

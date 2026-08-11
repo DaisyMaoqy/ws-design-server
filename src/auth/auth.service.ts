@@ -9,7 +9,7 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
-    private prisma: PrismaService,
+    private prisma: PrismaService,// 数据库服务
     private jwtService: JwtService,
   ) {}
 
@@ -29,7 +29,7 @@ export class AuthService {
       throw new UnauthorizedException("密码格式错误");
     }
 
-    // 2. 查找用户
+    // 2. 查找用户-数据库查询-根据用户ID查询
     const user = await this.prisma.sysUser.findUnique({
       where: { userId },
     });
@@ -45,10 +45,10 @@ export class AuthService {
       throw new UnauthorizedException("用户名或密码错误");
     }
 
-    // 4. 查找用户关联的租户
+    // 4. 查找用户关联的租户-根据where条件，include
     const userTenants = await this.prisma.sysUserTenant.findMany({
       where: { userId: user.id },
-      include: { tenant: true },
+      include: { tenant: true }, // 关联查询 意思：同时获取租户信息 if 里面包着select就只要具体字段
     });
 
     if (userTenants.length === 0) {
@@ -102,6 +102,7 @@ export class AuthService {
       teamFullCode: tenant.teamFullCode || "team_001",
     };
 
+    // 具体返回体
     return {
       token,
       userId: user.userId,

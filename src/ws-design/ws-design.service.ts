@@ -24,9 +24,9 @@ export class WsDesignService {
     const [list, total] = await Promise.all([
       this.prisma.wsDesignPackage.findMany({
         where,
-        skip: (pageNum - 1) * pageSize,
+        skip: (pageNum - 1) * pageSize, // 分页场景，偏移量
         take: pageSize,
-        orderBy: { createTime: "desc" },
+        orderBy: { createTime: "desc" }, // desc降序 最新发布在前
       }),
       this.prisma.wsDesignPackage.count({ where }),
     ]);
