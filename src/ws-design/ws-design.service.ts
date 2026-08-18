@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { PrismaService } from "../prisma/prisma.service";
+import { WsDesignPrismaService } from "../prisma/ws-design-prisma.service";
 
 @Injectable()
 export class WsDesignService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: WsDesignPrismaService) {}
 
   /**
    * 分页查询设计包列表

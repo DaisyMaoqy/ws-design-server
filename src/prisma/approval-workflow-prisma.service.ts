@@ -1,9 +1,9 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient as AwsPrismaClient } from "./generated/approval-workflow";
 
 @Injectable()
-export class PrismaService
-  extends PrismaClient
+export class AwsPrismaService
+  extends AwsPrismaClient
   implements OnModuleInit, OnModuleDestroy
 {
   async onModuleInit() {

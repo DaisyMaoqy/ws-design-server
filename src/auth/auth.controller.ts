@@ -10,7 +10,7 @@ import {
 import { AuthService } from "./auth.service";
 import { AuthTokenDto } from "./dto/auth-token.dto";
 
-@Controller("auth")
+@Controller("ws/admin/auth")
 export class AuthController {
   // 直接初始化，不用构造注入
   private readonly logger = new Logger(AuthController.name);
@@ -42,6 +42,8 @@ export class AuthController {
   /**
    * GET /ws/admin/auth/token/ticket
    * SSO Ticket 登录
+   * todo：
+   * 在get接口怎么添加@Query("ticket") , @Query("ssoId") DTO参数校验
    */
   @Get("token/ticket")
   async loginByTicket(
