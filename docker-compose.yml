@@ -4,7 +4,7 @@ services:
   # MySQL 数据库
   mysql:
     image: mysql:8.0 #自带 linux/arm64 镜像
-    container_name: ws-design-mysql
+    container_name: qy-core-mysql
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root_2026
@@ -23,7 +23,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: ws-design-server
+    container_name: qy-core-server
     restart: always
     ports:
       - "3001:3000"

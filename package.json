@@ -1,7 +1,7 @@
 {
-  "name": "ws-design-server",
+  "name": "qy-core-server",
   "version": "1.0.0",
-  "description": "中盈BPM管理系统 - 后端服务",
+  "description": "多类前端应用 - 后端服务",
   "main": "dist/main.js",
   "scripts": {
     "build": "nest build",
@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@nestjs/common": "^9.4.0",
+    "@nestjs/config": "^2.3.4",
     "@nestjs/core": "^9.4.0",
     "@nestjs/jwt": "^10.1.0",
     "@nestjs/passport": "^9.0.3",
