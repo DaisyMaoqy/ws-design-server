@@ -8,7 +8,7 @@ import { AwsPrismaService } from "./approval-workflow-prisma.service";
  * 各业务模块按需注入其一，无需再各自 import：
  *   - AuthModule            → AuthPrismaService        (auth_db)
  *   - TenantModule/AppModule/WsDesignModule → WsDesignPrismaService (ws_design_db)
- *   - ApprovalWorkflowModule → AwsPrismaService        (approval-workflow_db)
+ *   - ApprovalWorkflowModule → AwsPrismaService        (approval_workflow_db)
  */
 @Global()
 @Module({
