@@ -1,5 +1,5 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
-import { PrismaClient as WsDesignPrismaClient } from "./generated/ws-design";
+import { PrismaClient as WsDesignPrismaClient } from "@prisma/ws-client";
 
 @Injectable()
 export class WsDesignPrismaService
