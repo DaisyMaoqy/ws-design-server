@@ -205,10 +205,10 @@ npm run dev
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `AUTH_DATABASE_URL` | 认证库连接地址（auth_db） | `mysql://ws_design:ws_design_2026@localhost:3306/auth_db` |
-| `WS_DESIGN_DATABASE_URL` | 业务库连接地址（ws_design_db） | `mysql://ws_design:ws_design_2026@localhost:3306/ws_design_db` |
-| `AWS_DATABASE_URL` | 审批库连接地址（approval_workflow_db） | `mysql://ws_design:ws_design_2026@localhost:3306/approval_workflow_db` |
-| `JWT_SECRET` | JWT 签名密钥 | `ws-design-jwt-secret-key-2026` |
+| `AUTH_DATABASE_URL` | 认证库连接地址（auth_db） | `mysql://用户名:密码@主机:端口/auth_db` |
+| `WS_DESIGN_DATABASE_URL` | 业务库连接地址（ws_design_db） | `mysql://用户名:密码@主机:端口/ws_design_db` |
+| `AWS_DATABASE_URL` | 审批库连接地址（approval_workflow_db） | `mysql://用户名:密码@主机:端口/approval_workflow_db` |
+| `JWT_SECRET` | JWT 签名密钥 | `密钥` |
 | `PORT` | 服务端口 | `3000` |
 | `ENABLE_MODULE` | 加载的产品模块：`ws-design` / `approval-workflow`（逗号分隔；留空=全部） | 留空 |
 | `CORS_ORIGINS` | 跨域白名单，逗号分隔；留空则反射任意来源 | 留空（默认放开） |
@@ -241,6 +241,28 @@ npm run dev
 ```bash
 # 1) 启动全部：mysql 初始化三库 → wdv/aws 各跑 migrate deploy → 启动
 docker-compose up -d
+    # 启动mysql
+    docker-compose up -d mysql 
+    # 确认 MySQL 容器在运行
+    docker ps | grep mysql
+    # 用 docker exec 查看实际数据库
+    docker exec -it ws-design-mysql mysql -u ws_design -pws_design_2026 -e "SHOW DATABASES;"
+    # if 数据库都存在，则执行Prisma迁移
+
+        # 用 root 用户给 ws_design 授权，解决Error: P3014 Prisma Migrate could not create the shadow database.
+
+            # 进入你的 MySQL 容器
+            docker exec -it qy-core-mysql bash
+            # 在容器内连接 MySQL (如果root有密码，加 -p 参数)
+            bash-5.1# mysql -u root -p
+            # -- 授予 ws_design 用户在所有数据库上的创建、修改等权限
+            mysql> GRANT CREATE, ALTER, DROP, REFERENCES ON *.* TO 'ws_design'@'%';
+            # -- 刷新权限使更改生效
+            mysql> FLUSH PRIVILEGES;
+            # 退出 MySQL 和容器
+            exit
+            # 重新执行迁移命令          
+
 
 # 2) 首次建库需先生成迁移文件（在能连 DB 的环境执行一次，并提交到仓库）
 #    npm run prisma:migrate
