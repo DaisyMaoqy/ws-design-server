@@ -28,8 +28,12 @@ qy-core-server/
 │   │   ├── tenant/              # 租户模块 @Controller('ws/admin/tenant')
 │   │   └── app/                 # 应用模块 @Controller('ws/admin/authorization')
 │   ├── approval-workflow/       # approval-workflow 产品（流程/审批端）
-│   │   ├── approval-workflow.product.module.ts
-│   │   └── approval-workflow.controller.ts  # @Controller('aws')
+│   │   ├── approval-workflow.product.module.ts   # 产品模块入口（注册 JwtModule + 下列控制器/服务）
+│   │   ├── common/                # 响应拦截器 / 异常过滤器 / JWT 守卫 / 当前用户装饰器 / Request 映射
+│   │   ├── dto/                   # 登录 / 创建 / 动作 / 查询 / 批量 / 报表 / meta / 枚举
+│   │   ├── auth/                  # AwsAuthService + AuthController（@Controller('aws/v1/auth')）
+│   │   ├── users/                 # UserService + UserController（@Controller('aws/v1/users')）
+│   │   └── requests/              # RequestService + 差旅/请假/跨类型/报表 控制器（@Controller('aws/v1/...')）
 │   └── prisma/                  # 数据库服务
 ├── prisma/
 │   ├── auth/schema.prisma            # auth_db：认证/用户身份库
@@ -50,10 +54,20 @@ qy-core-server/
 
 | 表名 | 说明 |
 |------|------|
-| sys_user | 用户表 |
-| sys_tenant | 租户表 |
-| sys_user_tenant | 用户-租户关联表 |
-| sys_app | 应用表 |
+| sys_user | 用户表（auth_db） |
+| sys_tenant | 租户表（auth_db） |
+| sys_user_tenant | 用户-租户关联表（auth_db） |
+| sys_app | 应用表（ws_design_db） |
+
+### approval_workflow_db 表（审批业务库）
+
+| 表名 | 说明 |
+|------|------|
+| user | 审批侧用户/组织（role / managerId / department；D2 决策，auth_db 不含这些字段） |
+| request | 申请单主表（业务单号 TR-#### / LV-#### 作主键） |
+| trip_leg | 差旅行程段 |
+| budget | 分项预算（Decimal(15,2)，对外「分」整数） |
+| audit_entry | 审批留痕 |
 
 ## API 接口
 
@@ -64,6 +78,29 @@ qy-core-server/
 | GET | `/ws/admin/auth/user/getUserByNetuserid` | 获取用户信息 |
 | GET | `/ws/admin/tenant/getTenantListByUserId` | 获取租户列表 |
 | GET | `/ws/admin/authorization/apps` | 获取应用列表 |
+
+### approval-workflow（流程/审批）接口（前缀 `/aws/v1`，统一响应 `{code,msg,data}`，Bearer 鉴权）
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/aws/v1/auth/login` | 登录（验 auth_db 的 sysUser，签 JWT；免鉴权） |
+| GET | `/aws/v1/users/me` | 当前登录用户（role / managerId / department） |
+| GET | `/aws/v1/users` | 用户/组织列表（`?department=&role=`） |
+| GET | `/aws/v1/users/:id` | 用户详情 |
+| GET | `/aws/v1/users/:id/requests` | 某用户发起的申请 |
+| GET | `/aws/v1/travel-requests` | 差旅列表（`?status=&scope=&keyword=&year=&month=`） |
+| POST | `/aws/v1/travel-requests` | 新建差旅草稿（单号 TR-#### 后端生成） |
+| GET | `/aws/v1/travel-requests/:id` | 差旅详情 |
+| PUT | `/aws/v1/travel-requests/:id` | 编辑草稿（仅 draft/rejected） |
+| DELETE | `/aws/v1/travel-requests/:id` | 删除草稿（仅 draft） |
+| POST | `/aws/v1/travel-requests/:id/{submit,approve,reject,cancel,reedit}` | 状态流转 RPC |
+| GET | `/aws/v1/travel-requests/meta` | 校验规则元数据 |
+| GET/POST/PUT/DELETE | `/aws/v1/leave-requests/...` | 请假（与差旅对称，单号 LV-####） |
+| GET | `/aws/v1/requests` | 跨类型列表（`?type=&status=&scope=mine\|todo\|all`） |
+| POST | `/aws/v1/requests/batch` | 批量审批（approve/reject/cancel） |
+| GET | `/aws/v1/reports/dashboard` | 看板聚合 |
+
+> 接口契约详见前端仓库 `backend/docs/API.md` 与 `backend/docs/API-ALIGNMENT.md`（已与前端对齐：路径 `/aws/v1`、响应 `{code,msg,data}`（成功 `code:'200'`/`msg:'成功'`，HTTP 始终 200，沿用全局 `ResponseInterceptor`/`AllExceptionsFilter`）、创建/编辑 payload 用 `fields` 包裹、MySQL 用 String 枚举）。
 
 ## 快速开始
 
@@ -99,15 +136,20 @@ docker-compose up -d mysql
 使用 Prisma 的 `migrate` 流程同步结构。
 
 ```bash
-# 一次性生成三份 init 迁移并应用到本地库（需先 docker-compose up -d mysql）
+# 首次建库：生成并应用三份 init 迁移（需先 docker-compose up -d mysql）
 npm run prisma:migrate
 
-# 插入 Mock 数据（按需；目前 seed 仅覆盖 auth/ws-design，待按三库拆分）
+# approval_workflow_db 的 schema 已扩展为真实审批域模型（User/Request/...），
+# 在已存在 init 迁移的基础上需跑一次增量迁移：
+npm run prisma:migrate:aws
+
+# 插入示例数据（auth/ws-design + approval_workflow）
 npm run prisma:seed
 ```
 
 > 约定：开发/部署均用 `migrate`。
-> - 首次建库 → `npm run prisma:migrate`（会生成 `prisma/{auth,ws-design,approval-workflow}/migrations/*_init/`）；
+> - 首次建库 → `npm run prisma:migrate`（生成 `prisma/{auth,ws-design,approval-workflow}/migrations/*_init/`）；
+> - approval 库结构变更 → `npm run prisma:migrate:aws`（生成增量迁移 `aws_models`）；
 > - 容器启动 → `npm run prisma:deploy`（仅 `migrate deploy`，不生成文件，详见下方 Docker 部署）。
 
 ### 4. 启动后端服务
@@ -167,11 +209,29 @@ curl -X POST http://localhost:3000/ws/admin/auth/token \
 curl 'http://localhost:3000/ws/admin/tenant/getTenantListByUserId?userId=1'
 curl 'http://localhost:3000/ws/admin/authorization/apps'
 
-# —— approval-workflow 产品占位接口 ——
-curl http://localhost:3001/aws/health
+# —— approval-workflow 产品（流程/审批端，前缀 /aws/v1）——
+# 1) 登录（验 auth_db 的 sysUser，返回 JWT；token 在 data.token）
+curl -X POST http://localhost:3001/aws/v1/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"userId":"admin","password":"admin123"}'
+
+# 2) 拿 token 后访问受保护接口（统一响应 {code,msg,data}；登录响应 token 在 data.token）
+TOKEN=$(curl -s -X POST http://localhost:3001/aws/v1/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"userId":"admin","password":"admin123"}' | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+
+# 跨类型列表（scope=mine|todo|all）
+curl http://localhost:3001/aws/v1/requests -H "Authorization: Bearer $TOKEN"
+
+# 差旅列表 / 新建草稿
+curl http://localhost:3001/aws/v1/travel-requests -H "Authorization: Bearer $TOKEN"
+curl -X POST http://localhost:3001/aws/v1/travel-requests \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"fields":{"reason":"赴客户现场支持系统上线","urgency":"normal","legs":[{"from":"北京","to":"上海","departDate":"2026-09-01","returnDate":"2026-09-03","transport":"train"}],"budget":{"transport":55300,"hotel":90000,"allowance":30000,"other":0}}}'
 ```
 
-> approval-workflow 的真实业务接口（用户/角色、申请类型、步骤、申请单详情等）将根据其前端项目反推后补充。
+> aws 实例所有接口响应均为 `{code,msg,data}`（成功 `code:'200'`/`msg:'成功'`，HTTP 始终 200，沿用全局 `ResponseInterceptor`/`AllExceptionsFilter`），鉴权头为 `Authorization: Bearer <token>`。
+> 前端对接细节见前端仓库 `backend/docs/API-ALIGNMENT.md`。
 
 ### 5. 启动前端服务
 
@@ -187,9 +247,9 @@ npm run dev
 
 ## 测试账号
 
-| 用户名 | 密码 |
-|--------|------|
-| `admin` | `admin123` |
+| 用户名 | 密码 | 用途 |
+|--------|------|------|
+| `admin` | `admin123` | ws-design 登录；**同时作为 approval-workflow 登录账号**（aws 登录验 auth_db 的 sysUser，按 `employeeId=userId` 映射到审批侧 User） |
 
 ### 登录流程
 
@@ -246,7 +306,7 @@ docker-compose up -d
     # 确认 MySQL 容器在运行
     docker ps | grep mysql
     # 用 docker exec 查看实际数据库
-    docker exec -it ws-design-mysql mysql -u ws_design -pws_design_2026 -e "SHOW DATABASES;"
+    docker exec -it qy-core-mysql mysql -u ws_design -pws_design_2026 -e "SHOW DATABASES;"
     # if 数据库都存在，则执行Prisma迁移
 
         # 用 root 用户给 ws_design 授权，解决Error: P3014 Prisma Migrate could not create the shadow database.
@@ -269,6 +329,11 @@ docker-compose up -d
 #    = 对三份 schema 各 `prisma migrate dev --name init`，生成
 #      prisma/{auth,ws-design,approval-workflow}/migrations/*_init/
 #    生成后容器内的 `npm run prisma:deploy` 才能成功应用
+#
+#    approval_workflow_db 已扩展为真实审批域模型，需在 init 基础上再生成增量迁移：
+#    npm run prisma:migrate:aws
+#    = `prisma migrate dev --name aws_models`，生成
+#      prisma/approval-workflow/migrations/*_aws_models/（同样需提交，容器 deploy 才会应用）
 
 # 查看日志
 docker-compose logs -f wdv
@@ -296,8 +361,11 @@ curl -X POST http://localhost:3000/ws/admin/auth/token \
 # ws-design 租户列表
 curl 'http://localhost:3000/ws/admin/tenant/getTenantListByUserId?userId=1'
 
-# approval-workflow 占位健康检查
-curl http://localhost:3000/aws/health
+# approval-workflow 登录 + 列表（经 nginx 3000 入口，/aws → aws 实例）
+TOKEN=$(curl -s -X POST http://localhost:3000/aws/v1/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"userId":"admin","password":"admin123"}' | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+curl http://localhost:3000/aws/v1/requests -H "Authorization: Bearer $TOKEN"
 ```
 
 > 若不走 Nginx、直接验证单实例，可参考上方「验证路由」章节用 3000/3001 端口分别打 wdv/aws。
@@ -311,5 +379,6 @@ curl http://localhost:3000/aws/health
 | `npm run start:prod` | 启动生产服务 |
 | `npm run prisma:generate` | 按三份 schema 生成 Prisma Client |
 | `npm run prisma:migrate` | 生成并应用三份 init 迁移（首次建库） |
+| `npm run prisma:migrate:aws` | approval_workflow_db 增量迁移（schema 变更后） |
 | `npm run prisma:deploy` | 仅应用已生成的迁移（容器启动用） |
 | `npx prisma studio` | 打开 Prisma 数据管理界面 |
