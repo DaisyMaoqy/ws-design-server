@@ -1,0 +1,58 @@
+/** 与前端 domain/types.ts 对齐的响应结构（前端不改，后端按此返回） */
+
+export interface AuditEntryResponse {
+  id: string;
+  at: string; // ISO
+  actorId: string;
+  actorName: string;
+  action: string;
+  from: string;
+  to: string;
+  comment?: string;
+}
+
+export interface LegResponse {
+  id: string;
+  from: string;
+  to: string;
+  departDate: string; // YYYY-MM-DD
+  returnDate: string; // YYYY-MM-DD
+  transport: string;
+}
+
+export interface BudgetResponse {
+  transport: number; // 分
+  hotel: number;
+  allowance: number;
+  other: number;
+}
+
+export interface TravelFieldsResponse {
+  reason: string;
+  urgency: string;
+  legs: LegResponse[];
+  budget: BudgetResponse;
+  budgetNote?: string;
+}
+
+export interface LeaveFieldsResponse {
+  reason: string;
+  leaveType: string;
+  leaveStart: string; // YYYY-MM-DD
+  leaveEnd: string; // YYYY-MM-DD
+  note?: string;
+}
+
+export interface RequestResponse {
+  id: string;
+  type: string; // travel | leave
+  applicantId: string;
+  applicantName: string;
+  department: string;
+  status: string;
+  createdAt: string; // ISO
+  updatedAt: string; // ISO
+  submittedAt?: string; // ISO
+  audit: AuditEntryResponse[];
+  fields: TravelFieldsResponse | LeaveFieldsResponse;
+}

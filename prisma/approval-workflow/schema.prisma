@@ -1,0 +1,130 @@
+// ============================================================
+// approval_workflow_db —— 审批工作流业务库（独立库）
+//
+// 说明（与前端契约对齐，见 backend/docs/API-ALIGNMENT.md）：
+// - MySQL 8 不支持原生 enum，所有枚举值用 String 存储，约束在应用层（DTO / Service）保证。
+// - 用户组织信息（role / managerId / department）auth_db 的 SysUser 没有，
+//   故在本库自建 User 表（D2 决策），与 Request / AuditEntry 同库可建物理外键。
+// - Request.id 为业务单号 TR-#### / LV-####（后端生成），作为主键。
+// - 金额预算用 Decimal(15,2) 落库，对外仍以「分」整数收发，服务端原样存储分值。
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../src/prisma/generated/approval-workflow"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("AWS_DATABASE_URL")
+}
+
+// 用户 / 组织（审批工作流侧的组织视图）
+model User {
+  id          String   @id @default(uuid())
+  employeeId  String   @unique @db.VarChar(64)
+  name        String   @db.VarChar(128)
+  title       String?  @db.VarChar(128)
+  department  String   @db.VarChar(128)
+  // employee | manager | finance
+  role        String   @default("employee") @db.VarChar(32)
+  managerId   String?
+  manager     User?    @relation("ManagerSubordinates", fields: [managerId], references: [id])
+  subordinates User[]  @relation("ManagerSubordinates")
+
+  requests    Request[]    @relation("Applicant")
+  audits      AuditEntry[] @relation("Actor")
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([department])
+  @@index([managerId])
+}
+
+// 通用申请单（差旅 / 请假共用主表，异构字段按类型存于对应列）
+model Request {
+  id            String   @id // 业务单号 TR-#### / LV-####
+  // travel | leave
+  type          String   @db.VarChar(16)
+  applicantId   String
+  applicant     User     @relation("Applicant", fields: [applicantId], references: [id])
+  // 冗余，便于列表展示
+  applicantName String   @db.VarChar(128)
+  // 冗余
+  department    String   @db.VarChar(128)
+  // draft | pending_manager | pending_finance | approved | rejected | cancelled
+  status        String   @default("draft") @db.VarChar(32)
+
+  // 通用
+  reason        String   @db.VarChar(500)
+  // 差旅专属
+  urgency       String?  @db.VarChar(16) // normal | urgent
+  // 请假专属
+  leaveType     String?  @db.VarChar(16) // annual | sick | personal
+  leaveStart    String?  @db.VarChar(16) // YYYY-MM-DD
+  leaveEnd      String?  @db.VarChar(16) // YYYY-MM-DD
+  // 请假备注 / 差旅预算说明
+  note          String?  @db.VarChar(500)
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  submittedAt   DateTime?
+
+  audit         AuditEntry[]
+  legs          TripLeg[]
+  budget        Budget?
+
+  @@index([applicantId])
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// 差旅行程段
+model TripLeg {
+  id          String   @id @default(uuid())
+  requestId   String
+  request     Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  from        String   @db.VarChar(64)
+  to          String   @db.VarChar(64)
+  departDate  String   @db.VarChar(16) // YYYY-MM-DD
+  returnDate  String   @db.VarChar(16) // YYYY-MM-DD
+  // train | flight | car | other
+  transport   String   @db.VarChar(16)
+
+  @@index([requestId])
+}
+
+// 分项预算（对外「分」整数，落库 Decimal(15,2) 原样存分值）
+model Budget {
+  id         String  @id @default(uuid())
+  requestId  String  @unique
+  request    Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  transport  Decimal @db.Decimal(15, 2)
+  hotel      Decimal @db.Decimal(15, 2)
+  allowance   Decimal @db.Decimal(15, 2)
+  other      Decimal @db.Decimal(15, 2)
+  note       String? @db.VarChar(500)
+
+  @@index([requestId])
+}
+
+// 审批留痕
+model AuditEntry {
+  id        String   @id @default(uuid())
+  requestId String
+  request   Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  at        DateTime @default(now())
+  actorId   String
+  actor     User?    @relation("Actor", fields: [actorId], references: [id])
+  actorName String   @db.VarChar(128)
+  // submit | approve | reject | cancel | reedit
+  action    String   @db.VarChar(16)
+  // 流转前后状态
+  from      String   @db.VarChar(32)
+  to        String   @db.VarChar(32)
+  comment   String?  @db.VarChar(500)
+
+  @@index([requestId])
+}

@@ -1,0 +1,70 @@
+// ============================================================
+// ws_design_db —— BPM 业务库（配置/设计端）
+// 逻辑外键：以 userId / tenantId(String) 关联 auth_db，不建 DB 级 FK
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../../src/prisma/generated/ws-design"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("WS_DESIGN_DATABASE_URL")
+}
+
+// 租户表（主数据，tenantId 为对外逻辑主键）
+model SysTenant {
+  id            Int      @id @default(autoincrement())
+  tenantId      String   @unique @db.VarChar(64)
+  name          String   @db.VarChar(256)
+  code          String?  @db.VarChar(64)
+  prvCode       String?  @db.VarChar(64)
+  regFullCode   String?  @db.VarChar(128)
+  regFullName   String?  @db.VarChar(256)
+  teamFullCode  String?  @db.VarChar(128)
+  status        Int      @default(1)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// 应用表
+model SysApp {
+  id          Int      @id @default(autoincrement())
+  appId       String   @unique @db.VarChar(64)
+  name        String   @db.VarChar(256)
+  code        String   @db.VarChar(64)
+  description String?  @db.Text
+  status      Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// 设计包表
+model WsDesignPackage {
+  id              Int      @id @default(autoincrement())
+  name            String   @db.VarChar(256)
+  wsTypeName      String   @db.VarChar(256)
+  wsTypeCode      String   @db.VarChar(128)
+  wsPrefix        String?  @db.VarChar(64)
+  designGroup     String?  @db.VarChar(128)
+  remark          String?  @db.Text
+  processDesignId String?  @db.VarChar(128)
+  processXml      String?  @db.LongText
+  taskForms       String?  @db.LongText
+  usableRange     String?  @default("v2") @db.VarChar(32)
+  createTime      DateTime @default(now())
+  updateTime      DateTime @updatedAt
+}
+
+// 设计包部署配置表
+model WsDesignDeploy {
+  id                Int      @id @default(autoincrement())
+  wsTypeCode        String   @db.VarChar(128)
+  wsTypeName        String?  @db.VarChar(256)
+  wsPrefix          String?  @db.VarChar(64)
+  wsDesignPackageId Int?
+  createFormInfo    String?  @db.LongText
+  createTime        DateTime @default(now())
+  updateTime        DateTime @updatedAt
+}

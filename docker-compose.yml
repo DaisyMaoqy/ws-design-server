@@ -1,10 +1,14 @@
-# version: '3.8'
+# 双实例部署（阶段四）
+# 同一份代码按产品拆模块，分别起两个进程；经 Nginx 单入口分流：
+#   宿主 3000 → nginx → /ws/admin、/api/eoms → wdv；/aws → aws
+# 数据库：单 MySQL 实例承载 3 个独立 schema（auth_db / ws_design_db / approval_workflow_db），
+# 由 prisma/init.sql 在建库时创建并授权给应用账号 ws_design。
 
 services:
-  # MySQL 数据库
+  # 单 MySQL 实例，承载三个独立 schema
   mysql:
     image: mysql:8.0 #自带 linux/arm64 镜像
-    container_name: ws-design-mysql
+    container_name: qy-core-mysql
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root_2026
@@ -17,22 +21,64 @@ services:
       - mysql_data:/var/lib/mysql
       - ./prisma/init.sql:/docker-entrypoint-initdb.d/init.sql
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
-  # NestJS 后端服务
-  server:
+  # 产品实例：ws-design（配置/设计端，前缀 ws/admin，连 auth_db + ws_design_db）
+  wdv:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: ws-design-server
+    container_name: qy-core-wdv
+    restart: always
+    environment:
+      ENV_FILE: .env.wdv
+      ENABLE_MODULE: ws-design
+      PORT: "3000"
+      AUTH_DATABASE_URL: "mysql://ws_design:ws_design_2026@mysql:3306/auth_db"
+      WS_DESIGN_DATABASE_URL: "mysql://ws_design:ws_design_2026@mysql:3306/ws_design_db"
+      AWS_DATABASE_URL: "mysql://ws_design:ws_design_2026@mysql:3306/approval_workflow_db"
+      JWT_SECRET: "wdv-jwt-secret-change-me-2026"
+      CORS_ORIGINS: "https://wdv.example.com"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # 产品实例：approval-workflow（流程/审批端，前缀 aws，连 auth_db + approval_workflow_db）
+  aws:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qy-core-aws
+    restart: always
+    environment:
+      ENV_FILE: .env.aws
+      ENABLE_MODULE: approval-workflow
+      PORT: "3001"
+      AUTH_DATABASE_URL: "mysql://ws_design:ws_design_2026@mysql:3306/auth_db"
+      WS_DESIGN_DATABASE_URL: "mysql://ws_design:ws_design_2026@mysql:3306/ws_design_db"
+      AWS_DATABASE_URL: "mysql://ws_design:ws_design_2026@mysql:3306/approval_workflow_db"
+      JWT_SECRET: "aws-jwt-secret-change-me-2026"
+      CORS_ORIGINS: "https://aws.example.com"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # Nginx 单入口网关：按路径分流到两个产品实例
+  nginx:
+    image: nginx:alpine
+    container_name: qy-core-nginx
     restart: always
     ports:
-      - "3001:3000"
-    environment:
-      DATABASE_URL: "mysql://ws_design:ws_design_2026@mysql:3306/ws_design_db"
-      JWT_SECRET: "ws-design-jwt-secret-key-2026"
-      PORT: "3000"
+      - "3000:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
-      - mysql
+      - wdv
+      - aws
 
 volumes:
   mysql_data:

@@ -1,9 +1,9 @@
 import { Injectable } from "@nestjs/common";
-import { PrismaService } from "../prisma/prisma.service";
+import { WsDesignPrismaService } from "../../prisma/ws-design-prisma.service";
 
 @Injectable()
 export class AppService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: WsDesignPrismaService) {}
 
   /**
    * 获取应用列表

@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException, Logger } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import { PrismaService } from "../prisma/prisma.service";
+import { AuthPrismaService } from "../prisma/auth-prisma.service";
 import { AuthTokenDto } from "./dto/auth-token.dto";
 
 @Injectable()
@@ -9,7 +9,7 @@ export class AuthService {
   private readonly logger = new Logger(AuthService.name);
 
   constructor(
-    private prisma: PrismaService,// 数据库服务
+    private prisma: AuthPrismaService,// 认证库服务（auth_db）
     private jwtService: JwtService,
   ) {}
 
@@ -45,10 +45,9 @@ export class AuthService {
       throw new UnauthorizedException("用户名或密码错误");
     }
 
-    // 4. 查找用户关联的租户-根据where条件，include
+    // 4. 查找用户关联的租户（租户展示字段已冗余在 SysUserTenant，登录全程只访问 auth_db）
     const userTenants = await this.prisma.sysUserTenant.findMany({
       where: { userId: user.id },
-      include: { tenant: true }, // 关联查询 意思：同时获取租户信息 if 里面包着select就只要具体字段
     });
 
     if (userTenants.length === 0) {
@@ -57,15 +56,15 @@ export class AuthService {
 
     // 5. 如果没有指定 tenantId，使用第一个租户
     const selectedTenantExt = tenantId
-      ? userTenants.find((ut) => ut.tenant.tenantId === tenantId)
+      ? userTenants.find((ut) => ut.tenantId === tenantId)
       : userTenants[0];
 
     if (!selectedTenantExt) {
       throw new UnauthorizedException("用户未关联该租户");
     }
 
-    // 6. 查找该租户下的默认省份信息
-    const tenant = selectedTenantExt.tenant;
+    // 6. 取冗余的租户展示信息（无需跨库关联 SysTenant）
+    const tenant = selectedTenantExt;
 
     // 7. 生成 JWT Token
     const payload = {
@@ -79,13 +78,13 @@ export class AuthService {
 
     // 8. 构建响应数据，匹配前端期望的字段结构
     const tenantExtList = userTenants.map((ut) => ({
-      id: ut.tenant.tenantId,
-      name: ut.tenant.name,
-      code: ut.tenant.code,
-      prvCode: ut.tenant.prvCode,
-      regFullCode: ut.tenant.regFullCode,
-      regFullName: ut.tenant.regFullName,
-      teamFullCode: ut.tenant.teamFullCode,
+      id: ut.tenantId,
+      name: ut.tenantName,
+      code: ut.tenantCode,
+      prvCode: ut.prvCode,
+      regFullCode: ut.regFullCode,
+      regFullName: ut.regFullName,
+      teamFullCode: ut.teamFullCode,
     }));
 
     const defaultProv = {

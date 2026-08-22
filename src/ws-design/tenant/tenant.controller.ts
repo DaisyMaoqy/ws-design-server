@@ -1,7 +1,7 @@
 import { Controller, Get, Query } from "@nestjs/common";
 import { TenantService } from "./tenant.service";
 
-@Controller("tenant")
+@Controller("ws/admin/tenant")
 export class TenantController {
   constructor(private readonly tenantService: TenantService) {}
 

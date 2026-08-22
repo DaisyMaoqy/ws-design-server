@@ -17,7 +17,12 @@
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "paths": {
+      "@prisma/auth-client": ["src/prisma/generated/auth"],
+      "@prisma/ws-client": ["src/prisma/generated/ws-design"],
+      "@prisma/approval-client": ["src/prisma/generated/approval-workflow"]
+    }
   },
   "include": ["src/**/*","prisma/**/*"]
 }

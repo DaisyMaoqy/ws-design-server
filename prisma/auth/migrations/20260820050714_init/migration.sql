@@ -23,51 +23,21 @@ CREATE TABLE `SysUser` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `SysTenant` (
+CREATE TABLE `SysUserTenant` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `userId` INTEGER NOT NULL,
     `tenantId` VARCHAR(64) NOT NULL,
-    `name` VARCHAR(256) NOT NULL,
-    `code` VARCHAR(64) NULL,
+    `tenantName` VARCHAR(256) NOT NULL,
+    `tenantCode` VARCHAR(64) NULL,
     `prvCode` VARCHAR(64) NULL,
     `regFullCode` VARCHAR(128) NULL,
     `regFullName` VARCHAR(256) NULL,
     `teamFullCode` VARCHAR(128) NULL,
-    `status` INTEGER NOT NULL DEFAULT 1,
-    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    `updatedAt` DATETIME(3) NOT NULL,
-
-    UNIQUE INDEX `SysTenant_tenantId_key`(`tenantId`),
-    PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- CreateTable
-CREATE TABLE `SysUserTenant` (
-    `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `userId` INTEGER NOT NULL,
-    `tenantId` INTEGER NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
     UNIQUE INDEX `SysUserTenant_userId_tenantId_key`(`userId`, `tenantId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- CreateTable
-CREATE TABLE `SysApp` (
-    `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `appId` VARCHAR(64) NOT NULL,
-    `name` VARCHAR(256) NOT NULL,
-    `code` VARCHAR(64) NOT NULL,
-    `description` TEXT NULL,
-    `status` INTEGER NOT NULL DEFAULT 1,
-    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    `updatedAt` DATETIME(3) NOT NULL,
-
-    UNIQUE INDEX `SysApp_appId_key`(`appId`),
-    PRIMARY KEY (`id`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
 -- AddForeignKey
 ALTER TABLE `SysUserTenant` ADD CONSTRAINT `SysUserTenant_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `SysUser`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE `SysUserTenant` ADD CONSTRAINT `SysUserTenant_tenantId_fkey` FOREIGN KEY (`tenantId`) REFERENCES `SysTenant`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
